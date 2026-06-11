@@ -3,8 +3,11 @@
 #include <stdlib.h>
 
 #define BUFFER_CMD_SIZE 1024
+#define BUFFER_ARGS_SIZE 10
 #define RED "\033[0;31m"
 #define RESET "\e[0m"
+#define SHELL_DELIM " \t\r\n"
+
 
 char*   read_command();
 char**  get_arguments(char *);
@@ -18,7 +21,7 @@ char* read_command() {
     char *buffer = malloc(buffer_size);
 
     if (!buffer) {
-        fprintf(stderr, "%smy_shell: Allocation error%s\n", RED, RESET);
+        fprintf(stderr, "%smy_shell: Command Allocation Error%s\n", RED, RESET);
         exit(EXIT_FAILURE);
     }
 
@@ -37,11 +40,40 @@ char* read_command() {
             buffer = realloc(buffer, buffer_size);
 
             if (!buffer) {
-                fprintf(stderr, "%smy_shell: Allocation error%s\n", RED, RESET);
+                fprintf(stderr, "%smy_shell: Command Allocation Error%s\n", RED, RESET);
                 exit(EXIT_FAILURE);
             }
         }
     }
+}
+
+char** get_arguments(char *cmd) {
+    int buffer_size = BUFFER_ARGS_SIZE;
+    int position = 0;
+    char **args = malloc(buffer_size * sizeof(char *));
+    if (!args) {
+        fprintf(stderr, "%smy_shell: Argument Allocation Error%s", RED, RESET);
+        exit(EXIT_FAILURE);
+    }
+    char *token = strtok(cmd, SHELL_DELIM);
+
+    while (token != NULL) {
+        args[position++] = token;
+        printf("%s\n", token);
+
+        if (position >= buffer_size) {
+            buffer_size += BUFFER_ARGS_SIZE;
+            args = realloc(args, buffer_size * sizeof(char *));
+
+            if (!args) {
+                fprintf(stderr, "%smy_shell: Argument Allocation Error%s", RED, RESET);
+                exit(EXIT_FAILURE);
+            }
+        }
+
+        token = strtok(NULL, SHELL_DELIM);
+    }  
+    return args;
 }
 
 void run() {
@@ -53,8 +85,7 @@ void run() {
     {
         printf("my_shell>>> ");
         cmd    = read_command();
-        printf("%s\n", cmd);
-        // args   = get_arguments(cmd);
+        args   = get_arguments(cmd);
         // status = execute(args);
         free(cmd);
         free(args);
