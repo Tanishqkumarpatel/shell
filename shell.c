@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <errno.h>
 
 #define BUFFER_CMD_SIZE 1024
 #define BUFFER_ARGS_SIZE 10
@@ -28,15 +29,6 @@ char* read_command() {
     }
 
     while(1) {
-        c = getchar();
-        if (c == EOF || c == '\n') {
-            buffer[position] = '\0';
-            return buffer;
-        } else {
-            buffer[position] = c;
-        }
-        position++;
-
         if (position >= buffer_size) {
             buffer_size += BUFFER_CMD_SIZE;
             buffer = realloc(buffer, buffer_size);
@@ -46,6 +38,14 @@ char* read_command() {
                 exit(EXIT_FAILURE);
             }
         }
+        c = getchar();
+        if (c == EOF || c == '\n') {
+            buffer[position] = '\0';
+            return buffer;
+        } else {
+            buffer[position] = c;
+        }
+        position++;
     }
 }
 
@@ -88,11 +88,11 @@ int execute(char **args) {
 
     if (cpid == 0) {
         if (execvp(args[0], args) < 0) {
-            perror("my_shell");
+            fprintf(stderr, "%smy_shell: %s%s\n", RED, strerror(errno), RESET);
             exit(EXIT_FAILURE);
         }
     } else if (cpid < 0) {
-        printf("%smy_shell: Error Forking Process%s\n", RED, RESET);
+        fprintf(stderr, "%smy_shell: Error Forking Process%s\n", RED, RESET);
         exit(EXIT_FAILURE);
     } else {
         waitpid(cpid, &status, WUNTRACED);
@@ -108,6 +108,7 @@ void run() {
     while (status)
     {
         printf("my_shell>>> ");
+        fflush(stdout);
         cmd    = read_command();
         args   = get_arguments(cmd);
         status = execute(args);
